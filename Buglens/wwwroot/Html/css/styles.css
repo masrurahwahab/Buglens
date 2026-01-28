@@ -1,0 +1,363 @@
+﻿/* Global Styles */
+:root {
+    --primary-color: #8B4513;
+    --primary-dark: #654321;
+    --primary-light: #A0522D;
+    --danger-color: #A0522D;
+    --success-color: #6B8E23;
+    --info-color: #D2691E;
+    --dark-color: #3E2723;
+    --light-color: #F5E6D3;
+    --bg-color: #FDF8F3;
+    --card-bg: #FFF8F0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    min-height: 100vh;
+}
+
+/* Override Bootstrap primary colors */
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.border-primary {
+    border-color: var(--primary-color) !important;
+}
+
+.alert-info {
+    background-color: #F4E4D7;
+    border-color: #D2B48C;
+    color: var(--dark-color);
+}
+
+/* Navbar */
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.navbar-brand i {
+    margin-right: 0.5rem;
+}
+
+/* Cards */
+.card {
+    border-radius: 8px;
+    border: none;
+    background-color: var(--card-bg);
+}
+
+.card-header {
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 600;
+}
+
+.card-header.bg-danger {
+    background-color: var(--danger-color) !important;
+}
+
+.card-header.bg-info {
+    background-color: var(--info-color) !important;
+}
+
+.card-header.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.border-danger {
+    border-color: var(--danger-color) !important;
+}
+
+.border-success {
+    border-color: var(--success-color) !important;
+}
+
+.text-danger {
+    color: var(--danger-color) !important;
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
+    border-radius: 6px;
+    border-color: #D2B48C;
+    background-color: var(--card-bg);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(139, 69, 19, 0.25);
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.font-monospace {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+/* Code Display */
+pre {
+    background-color: #3E2723;
+    color: #F5DEB3;
+    padding: 1.5rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    max-height: 500px;
+    border: 2px solid #654321;
+}
+
+pre code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Results Section */
+#rootCause {
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+#explanation,
+#fix {
+    line-height: 1.8;
+    white-space: pre-wrap;
+}
+
+#explanation p,
+#fix p {
+    margin-bottom: 1rem;
+}
+
+/* Loading Spinner */
+#loadingSpinner {
+    animation: fadeIn 0.3s ease;
+}
+
+#loadingSpinner .spinner-border {
+    color: var(--primary-color);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Tabs */
+.nav-tabs .nav-link {
+    color: var(--dark-color);
+    border: none;
+    border-bottom: 3px solid transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: var(--primary-color);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    background-color: transparent;
+    border-bottom: 3px solid var(--primary-color);
+    font-weight: 600;
+}
+
+/* History Modal */
+.history-item {
+    padding: 1rem;
+    border: 1px solid #D2B48C;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: var(--card-bg);
+}
+
+.history-item:hover {
+    background-color: #F4E4D7;
+    border-color: var(--primary-color);
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(139, 69, 19, 0.15);
+}
+
+.history-item .badge {
+    font-size: 0.8rem;
+}
+
+.history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.history-item-language {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.history-item-date {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.history-item-preview {
+    font-size: 0.9rem;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Alerts */
+.alert {
+    border-radius: 6px;
+    border: none;
+}
+
+.alert i {
+    margin-right: 0.5rem;
+}
+
+.alert-danger {
+    background-color: #F4D4CC;
+    color: #8B4513;
+    border: 1px solid var(--danger-color);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2rem;
+    }
+
+    .lead {
+        font-size: 1rem;
+    }
+
+    pre {
+        font-size: 0.8rem;
+        padding: 1rem;
+    }
+
+    .btn-lg {
+        font-size: 1rem;
+        padding: 0.6rem 1rem;
+    }
+}
+
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+.slide-up {
+    animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Copy Button Feedback */
+.btn-success-temp {
+    background-color: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+    color: white !important;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #F5E6D3;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #A0522D;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #8B4513;
+}
+
+/* Additional Brown Theme Elements */
+.modal-content {
+    background-color: var(--card-bg);
+}
+
+.modal-header {
+    border-bottom-color: #D2B48C;
+}
+
+.nav-tabs {
+    border-bottom-color: #D2B48C;
+}
+
+.shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(139, 69, 19, 0.15) !important;
+}

@@ -1,0 +1,6 @@
+@Buglens_HostAddress = http://localhost:5112
+
+GET {{Buglens_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

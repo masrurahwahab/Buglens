@@ -1,0 +1,657 @@
+﻿/* History Page Specific Styles */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    background: linear-gradient(180deg, #654321 0%, #3E2723 100%);
+    color: white;
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+
+.sidebar.hide {
+    transform: translateX(-100%);
+}
+
+/* Logout Button */
+.logout-btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #ef4444;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+    transform: translateY(-2px);
+}
+
+.logout-btn:active {
+    transform: translateY(0);
+}
+
+.logout-btn i {
+    font-size: 1.1rem;
+}
+
+/* Logout Confirmation Modal */
+.logout-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.logout-modal.show {
+    display: flex;
+}
+
+.logout-modal-content {
+    background: #1e293b;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.logout-modal-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.logout-modal-icon {
+    font-size: 3rem;
+    color: #ef4444;
+    margin-bottom: 1rem;
+}
+
+.logout-modal-header h3 {
+    font-size: 1.5rem;
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.logout-modal-header p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.logout-modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.logout-modal-btn {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logout-confirm-btn {
+    background: #ef4444;
+    color: #fff;
+}
+
+.logout-confirm-btn:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+}
+
+.logout-cancel-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.logout-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .logout-modal-content {
+        max-width: 90%;
+    }
+}
+
+/* History Cards */
+.history-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #D2B48C;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.history-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(139, 69, 19, 0.15);
+    border-color: var(--primary-color);
+}
+
+/* History Card Header */
+.history-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #E8D4C0;
+}
+
+.history-card-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.history-language-badge {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.history-id {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.history-date {
+    color: #8B4513;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.history-date i {
+    font-size: 0.9rem;
+}
+
+/* History Card Body */
+.history-card-body {
+    margin-bottom: 1rem;
+}
+
+.history-root-cause {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.history-root-cause i {
+    color: var(--danger-color);
+    font-size: 1.1rem;
+    margin-top: 0.2rem;
+}
+
+.history-root-cause span {
+    font-weight: 600;
+    color: var(--dark-color);
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.history-preview {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-left: 2rem;
+}
+
+/* History Card Footer */
+.history-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #E8D4C0;
+}
+
+.history-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.history-tag {
+    background-color: #E8F5E9;
+    color: var(--success-color);
+    padding: 0.35rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.history-tag i {
+    font-size: 0.85rem;
+}
+
+/* History Actions */
+.history-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.history-action-btn {
+    background: white;
+    border: 1px solid #D2B48C;
+    color: var(--dark-color);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.history-action-btn:hover {
+    background-color: #F4E4D7;
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.history-action-btn.primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+    border: none;
+}
+
+.history-action-btn.primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+}
+
+.history-action-btn i {
+    font-size: 0.9rem;
+}
+
+/* Pagination */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 2rem;
+    padding: 1.5rem;
+}
+
+.pagination-info {
+    color: var(--dark-color);
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.pagination-info span {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Details Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-overlay.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.modal-custom {
+    background: var(--card-bg);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+.modal-custom.modal-lg {
+    max-width: 1100px;
+}
+
+.modal-header-custom {
+    padding: 1.5rem 2rem;
+    border-bottom: 2px solid #D2B48C;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-header-custom h5 {
+    margin: 0;
+    color: white;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.modal-body-custom {
+    padding: 2rem;
+}
+
+.modal-footer-custom {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #D2B48C;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+/* Detail Sections */
+.detail-section {
+    margin-bottom: 2rem;
+}
+
+.detail-title {
+    color: var(--dark-color);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.05rem;
+}
+
+.detail-title i {
+    font-size: 1.2rem;
+}
+
+.detail-content {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    line-height: 1.8;
+    color: var(--dark-color);
+    white-space: pre-wrap;
+}
+
+.detail-code {
+    background-color: #3E2723;
+    color: #F5DEB3;
+    padding: 1.5rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border: 2px solid #654321;
+    margin: 0;
+}
+
+.detail-item {
+    margin-bottom: 0.75rem;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-right: 0.5rem;
+}
+
+.detail-value {
+    color: var(--dark-color);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 2px dashed #D2B48C;
+}
+
+.empty-state i {
+    font-size: 5rem;
+    color: #D2B48C;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state h4 {
+    color: var(--dark-color);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 2rem;
+}
+
+/* Loading State */
+.loading-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.loading-content h5 {
+    color: var(--dark-color);
+    margin-bottom: 0.5rem;
+}
+
+.loading-content p {
+    color: #6c757d;
+}
+
+.loader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #F5E6D3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Search Box */
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box i {
+    position: absolute;
+    left: 1rem;
+    color: #6c757d;
+}
+
+.search-box input {
+    padding-left: 2.75rem;
+    min-width: 250px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .history-card {
+        padding: 1rem;
+    }
+
+    .history-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .history-card-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .history-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .history-action-btn {
+        flex: 1;
+        min-width: 100px;
+        justify-content: center;
+    }
+
+    .modal-custom {
+        margin: 1rem;
+        max-height: 95vh;
+    }
+
+    .modal-body-custom {
+        padding: 1.25rem;
+    }
+
+    .search-box input {
+        min-width: 200px;
+    }
+
+    .pagination-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .detail-code {
+        font-size: 0.8rem;
+        padding: 1rem;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Scrollbar for Modal */
+.modal-custom::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-custom::-webkit-scrollbar-track {
+    background: #F5E6D3;
+    border-radius: 10px;
+}
+
+.modal-custom::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 10px;
+}
+
+.modal-custom::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
