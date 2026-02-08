@@ -14,6 +14,16 @@ using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// IMPORTANT: Explicitly add environment variables
+builder.Configuration.AddEnvironmentVariables();
+
+// Diagnostic logging to verify config is loaded
+Console.WriteLine("=== Configuration Diagnostics ===");
+Console.WriteLine($"Jwt:Key exists: {!string.IsNullOrEmpty(builder.Configuration["Jwt:Key"])}");
+Console.WriteLine($"Jwt:Key length: {builder.Configuration["Jwt:Key"]?.Length ?? 0}");
+Console.WriteLine($"Jwt:Issuer: {builder.Configuration["Jwt:Issuer"]}");
+Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine("=== End Diagnostics ===");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -34,6 +44,26 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<BugLensContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
+
+// Get JWT settings with null checks
+var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrEmpty(jwtKey))
+{
+    throw new InvalidOperationException("Jwt:Key configuration is missing! Please check your environment variables.");
+}
+
+if (string.IsNullOrEmpty(jwtIssuer))
+{
+    throw new InvalidOperationException("Jwt:Issuer configuration is missing!");
+}
+
+if (string.IsNullOrEmpty(jwtAudience))
+{
+    throw new InvalidOperationException("Jwt:Audience configuration is missing!");
+}
 
 builder.Services.AddAuthentication(options =>
     {
@@ -77,10 +107,9 @@ builder.Services.AddAuthentication(options =>
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew = TimeSpan.FromMinutes(5)
         };
     });
