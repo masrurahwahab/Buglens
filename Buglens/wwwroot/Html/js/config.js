@@ -1,7 +1,15 @@
-﻿
 console.log('config.js loaded at:', new Date().toISOString());
+
+// Automatically detect the environment
+const getBaseUrl = () => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5112/api';
+    }
+    return `${window.location.protocol}//${window.location.host}/api`;
+};
+
 const API_CONFIG = {
-    BASE_URL: 'http://localhost:5112/api',
+    BASE_URL: getBaseUrl(),
 
     ENDPOINTS: {
         ANALYZE: '/Analysis',
