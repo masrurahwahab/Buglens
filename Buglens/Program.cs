@@ -32,7 +32,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
-        builder => builder
+        policy => policy
             .AllowAnyOrigin()
             .AllowAnyMethod()
             .AllowAnyHeader());
@@ -43,17 +43,22 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<BugLensContext>(options =>
     options.UseNpgsql(connectionString));
 
-// JWT
+// JWT (optional, still needed for API authentication)
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer missing");
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience missing");
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = "GitHub"; // Default OAuth challenge
 })
-.AddJwtBearer(options =>
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    options.Cookie.SameSite = SameSiteMode.Lax;      // required for cross-site OAuth
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // allow HTTP
+})
+.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -66,6 +71,20 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
         ClockSkew = TimeSpan.FromMinutes(5)
     };
+})
+.AddGoogle("Google", google =>
+{
+    google.ClientId = builder.Configuration["OAuth:Google:ClientId"] ?? throw new ArgumentNullException("Google ClientId missing");
+    google.ClientSecret = builder.Configuration["OAuth:Google:ClientSecret"] ?? throw new ArgumentNullException("Google ClientSecret missing");
+    google.CallbackPath = "/api/OAuth/google/callback";
+})
+.AddGitHub("GitHub", github =>
+{
+    github.ClientId = builder.Configuration["OAuth:GitHub:ClientId"] ?? throw new ArgumentNullException("GitHub ClientId missing");
+    github.ClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"] ?? throw new ArgumentNullException("GitHub ClientSecret missing");
+    github.CallbackPath = "/api/OAuth/github/callback";
+    github.Scope.Add("read:user");
+    github.Scope.Add("user:email");
 });
 
 // Repositories and Services
@@ -78,50 +97,17 @@ builder.Services.AddScoped<IAnalysisService, AnalysisService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-
 builder.Services.AddHttpClient<IGeminiService, GeminiService>()
     .ConfigurePrimaryHttpMessageHandler(() =>
     {
-        var handler = new HttpClientHandler
+        return new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
             SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13
         };
-        return handler;
     })
     .SetHandlerLifetime(TimeSpan.FromMinutes(5));
-
-// OAuth client IDs
-var googleClientId = builder.Configuration["OAuth:Google:ClientId"];
-var googleClientSecret = builder.Configuration["OAuth:Google:ClientSecret"];
-var githubClientId = builder.Configuration["OAuth:GitHub:ClientId"];
-var githubClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"];
-
-// 🔹 Enable HTTP for OAuth
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-{
-    options.Cookie.SameSite = SameSiteMode.Lax;  // required for cross-site OAuth
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // allow HTTP
-})
-
-.AddGoogle(google =>
-{
-    google.ClientId = googleClientId ?? throw new ArgumentNullException("Google ClientId missing");
-    google.ClientSecret = googleClientSecret ?? throw new ArgumentNullException("Google ClientSecret missing");
-    google.CallbackPath = "/api/OAuth/google/callback";
-})
-.AddGitHub(github =>
-{
-    github.ClientId = githubClientId ?? throw new ArgumentNullException("GitHub ClientId missing");
-    github.ClientSecret = githubClientSecret ?? throw new ArgumentNullException("GitHub ClientSecret missing");
-    github.CallbackPath = "/api/OAuth/github/callback";
-});
 
 var app = builder.Build();
 
