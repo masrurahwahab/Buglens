@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Buglens.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,8 +56,9 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
-    options.Cookie.SameSite = SameSiteMode.Lax;      // required for cross-site OAuth
+    options.Cookie.SameSite = SameSiteMode.Lax;      // allow cross-site
     options.Cookie.SecurePolicy = CookieSecurePolicy.None; // allow HTTP
+    options.Cookie.HttpOnly = true;
 })
 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 {
@@ -83,8 +85,13 @@ builder.Services.AddAuthentication(options =>
     github.ClientId = builder.Configuration["OAuth:GitHub:ClientId"] ?? throw new ArgumentNullException("GitHub ClientId missing");
     github.ClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"] ?? throw new ArgumentNullException("GitHub ClientSecret missing");
     github.CallbackPath = "/api/OAuth/github/callback";
+
     github.Scope.Add("read:user");
     github.Scope.Add("user:email");
+
+    // Ensure cookies work over HTTP
+    github.CorrelationCookie.SameSite = SameSiteMode.Lax;
+    github.CorrelationCookie.SecurePolicy = CookieSecurePolicy.None;
 });
 
 // Repositories and Services
