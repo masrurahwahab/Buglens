@@ -25,6 +25,10 @@ Console.WriteLine($"Jwt:Issuer: {builder.Configuration["Jwt:Issuer"]}");
 Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 Console.WriteLine("=== End Diagnostics ===");
 
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/tmp/asp-dataprotection-keys"))
+    .SetApplicationName("BugLens");
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
