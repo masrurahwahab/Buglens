@@ -32,6 +32,8 @@ builder.Services.AddDataProtection()
     .SetApplicationName("BugLens");
 
 builder.Services.AddControllers();
+
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -154,5 +156,11 @@ app.UseAuthorization();
 
 // Controllers
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<BugLensContext>();
+    db.Database.Migrate();
+}
 
 app.Run();
