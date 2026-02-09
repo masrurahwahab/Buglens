@@ -82,16 +82,22 @@ builder.Services.AddAuthentication(options =>
 })
 .AddGitHub("GitHub", github =>
 {
-    github.ClientId = builder.Configuration["OAuth:GitHub:ClientId"] ?? throw new ArgumentNullException("GitHub ClientId missing");
-    github.ClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"] ?? throw new ArgumentNullException("GitHub ClientSecret missing");
+    github.ClientId = builder.Configuration["OAuth:GitHub:ClientId"];
+    github.ClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"];
     github.CallbackPath = "/api/OAuth/github/callback";
-
     github.Scope.Add("read:user");
     github.Scope.Add("user:email");
 
-    // Ensure cookies work over HTTP
+    // HTTP workaround
     github.CorrelationCookie.SameSite = SameSiteMode.Lax;
     github.CorrelationCookie.SecurePolicy = CookieSecurePolicy.None;
+
+    // Ignore HTTPS requirement if using HTTP (temporary for competition)
+    github.Events.OnRedirectToAuthorizationEndpoint = context =>
+    {
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 // Repositories and Services
