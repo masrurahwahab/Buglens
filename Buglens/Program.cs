@@ -106,9 +106,10 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
-    options.Cookie.SameSite = SameSiteMode.Lax; // allow HTTP redirects
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // 🔹 Allow HTTP
+    options.Cookie.SameSite = SameSiteMode.Lax;  // required for cross-site OAuth
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // allow HTTP
 })
+
 .AddGoogle(google =>
 {
     google.ClientId = googleClientId ?? throw new ArgumentNullException("Google ClientId missing");
