@@ -149,17 +149,17 @@ builder.Services.AddAuthentication(options =>
     })
     .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
-        builder.Services.AddAuthentication()
+           builder.Services.AddAuthentication()
             .AddGoogle(options =>
             {
-                options.ClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
-                options.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
+                options.ClientId = Environment.GetEnvironmentVariable("GOOGLE__CLIENT__ID");
+                options.ClientSecret = Environment.GetEnvironmentVariable("GOOGLE__CLIENT__SECRET");
                 options.CallbackPath = "/api/OAuth/google/callback";
             })
             .AddGitHub(options =>
             {
-                options.ClientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
-                options.ClientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
+                options.ClientId = Environment.GetEnvironmentVariable("GITHUB__CLIENT__ID");
+                options.ClientSecret = Environment.GetEnvironmentVariable("GITHUB__CLIENT__SECRET");
                 options.CallbackPath = "/api/OAuth/github/callback";
             });
 
