@@ -47,8 +47,16 @@ builder.Services.AddCors(options =>
 
 // Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<BugLensContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseMySql(
+        connectionString,
+        ServerVersion.AutoDetect(connectionString)
+    ));
+
+//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+//builder.Services.AddDbContext<BugLensContext>(options =>
+    //options.UseNpgsql(connectionString));
 
 // JWT (optional, still needed for API authentication)
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
