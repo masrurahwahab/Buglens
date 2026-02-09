@@ -56,8 +56,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
-    options.Cookie.SameSite = SameSiteMode.Lax;      // allow cross-site
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // allow HTTP
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // ✅ HTTPS on Render
     options.Cookie.HttpOnly = true;
 })
 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -88,16 +88,9 @@ builder.Services.AddAuthentication(options =>
     github.Scope.Add("read:user");
     github.Scope.Add("user:email");
 
-    // HTTP workaround
+    // HTTPS cookie settings for Render
     github.CorrelationCookie.SameSite = SameSiteMode.Lax;
-    github.CorrelationCookie.SecurePolicy = CookieSecurePolicy.None;
-
-    // Ignore HTTPS requirement if using HTTP (temporary for competition)
-    github.Events.OnRedirectToAuthorizationEndpoint = context =>
-    {
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
-    };
+    github.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always; // ✅ HTTPS on Render
 });
 
 // Repositories and Services
