@@ -10,17 +10,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Buglens.Services;
-using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// IMPORTANT: Explicitly add environment variables
+// Load environment variables
 builder.Configuration.AddEnvironmentVariables();
 
-// Diagnostic logging to verify config is loaded
+// Diagnostics
 Console.WriteLine("=== Configuration Diagnostics ===");
 Console.WriteLine($"Jwt:Key exists: {!string.IsNullOrEmpty(builder.Configuration["Jwt:Key"])}");
-Console.WriteLine($"Jwt:Key length: {builder.Configuration["Jwt:Key"]?.Length ?? 0}");
 Console.WriteLine($"Jwt:Issuer: {builder.Configuration["Jwt:Issuer"]}");
 Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 Console.WriteLine("=== End Diagnostics ===");
@@ -29,7 +28,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -39,123 +38,67 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader());
 });
 
-
+// Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
 builder.Services.AddDbContext<BugLensContext>(options =>
     options.UseNpgsql(connectionString));
 
-
-
-// Get JWT settings with null checks
-var jwtKey = builder.Configuration["Jwt:Key"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
-
-if (string.IsNullOrEmpty(jwtKey))
-{
-    throw new InvalidOperationException("Jwt:Key configuration is missing! Please check your environment variables.");
-}
-
-if (string.IsNullOrEmpty(jwtIssuer))
-{
-    throw new InvalidOperationException("Jwt:Issuer configuration is missing!");
-}
-
-if (string.IsNullOrEmpty(jwtAudience))
-{
-    throw new InvalidOperationException("Jwt:Audience configuration is missing!");
-}
+// JWT
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer missing");
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience missing");
 
 builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                Console.WriteLine($"Authentication failed: {context.Exception.Message}");
-                if (context.Exception is SecurityTokenExpiredException)
-                {
-                    Console.WriteLine("Token has expired");
-                }
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = context =>
-            {
-                Console.WriteLine("Token validated successfully");
-                return Task.CompletedTask;
-            },
-            OnChallenge = context =>
-            {
-                Console.WriteLine($" OnChallenge: Error={context.Error}, Description={context.ErrorDescription}");
-                return Task.CompletedTask;
-            },
-            OnMessageReceived = context =>
-            {
-                var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-                Console.WriteLine($"Authorization header: {authHeader?.Substring(0, Math.Min(50, authHeader?.Length ?? 0))}...");
-                return Task.CompletedTask;
-            }
-        };
-    
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ClockSkew = TimeSpan.FromMinutes(5)
-        };
-    });
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ClockSkew = TimeSpan.FromMinutes(5)
+    };
+});
 
-        
-        builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        builder.Services.AddScoped<IAnalysisRepository, AnalysisRepository>();
-        builder.Services.AddScoped<IStatisticsRepository, StatisticsRepository>();
+// Repositories and Services
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IAnalysisRepository, AnalysisRepository>();
+builder.Services.AddScoped<IStatisticsRepository, StatisticsRepository>();
+builder.Services.AddHttpClient<IOAuthService, OAuthService>();
+builder.Services.AddScoped<Buglens.UnitOfWork.IUnitOfWork, Buglens.UnitOfWork.UnitOfWork>();
+builder.Services.AddScoped<IAnalysisService, AnalysisService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
-        builder.Services.AddHttpClient<IOAuthService, OAuthService>();
-      
-        builder.Services.AddScoped<Buglens.UnitOfWork.IUnitOfWork, Buglens.UnitOfWork.UnitOfWork>();
-
-      
-        builder.Services.AddScoped<IAnalysisService, AnalysisService>();
-        builder.Services.AddScoped<IAuthService, AuthService>();
-        builder.Services.AddScoped<ITokenService, TokenService>();
-        builder.Services.AddScoped<IEmailService, EmailService>();
-        builder.Services.AddHttpClient<IGeminiService, GeminiService>()
+builder.Services.AddHttpClient<IGeminiService, GeminiService>()
     .ConfigurePrimaryHttpMessageHandler(() =>
     {
         var handler = new HttpClientHandler
         {
-           
             ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
-            
-          
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            
-           
             SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13
         };
-        
         return handler;
     })
     .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
+// OAuth client IDs
 var googleClientId = builder.Configuration["OAuth:Google:ClientId"];
 var googleClientSecret = builder.Configuration["OAuth:Google:ClientSecret"];
 var githubClientId = builder.Configuration["OAuth:GitHub:ClientId"];
 var githubClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"];
 
-
-
+// 🔹 Enable HTTP for OAuth
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -163,45 +106,46 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
-    options.Cookie.SameSite = SameSiteMode.Lax; // or None if cross-site
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Required for HTTPS
+    options.Cookie.SameSite = SameSiteMode.Lax; // allow HTTP redirects
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None; // 🔹 Allow HTTP
 })
 .AddGoogle(google =>
 {
-    google.ClientId = googleClientId ?? throw new ArgumentNullException("Google ClientId is missing!");
-    google.ClientSecret = googleClientSecret ?? throw new ArgumentNullException("Google ClientSecret is missing!");
+    google.ClientId = googleClientId ?? throw new ArgumentNullException("Google ClientId missing");
+    google.ClientSecret = googleClientSecret ?? throw new ArgumentNullException("Google ClientSecret missing");
     google.CallbackPath = "/api/OAuth/google/callback";
 })
 .AddGitHub(github =>
 {
-    github.ClientId = githubClientId ?? throw new ArgumentNullException("GitHub ClientId is missing!");
-    github.ClientSecret = githubClientSecret ?? throw new ArgumentNullException("GitHub ClientSecret is missing!");
+    github.ClientId = githubClientId ?? throw new ArgumentNullException("GitHub ClientId missing");
+    github.ClientSecret = githubClientSecret ?? throw new ArgumentNullException("GitHub ClientSecret missing");
     github.CallbackPath = "/api/OAuth/github/callback";
 });
 
-
-
 var app = builder.Build();
 
-
+// Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// CORS
 app.UseCors("AllowAll");
+
+// Static files
 var defaultFilesOptions = new DefaultFilesOptions();
 defaultFilesOptions.DefaultFileNames.Clear();
 defaultFilesOptions.DefaultFileNames.Add("welcome.html");
 app.UseDefaultFiles(defaultFilesOptions);
-
 app.UseStaticFiles();
 
-
+// Auth
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Controllers
 app.MapControllers();
 
 app.Run();
