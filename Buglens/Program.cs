@@ -156,19 +156,28 @@ var githubClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"];
 
 
 
-builder.Services.AddAuthentication()
-    .AddGoogle(options =>
-    {
-        options.ClientId = googleClientId ?? throw new ArgumentNullException("Google ClientId is missing!");
-        options.ClientSecret = googleClientSecret ?? throw new ArgumentNullException("Google ClientSecret is missing!");
-        options.CallbackPath = "/api/OAuth/google/callback";
-    })
-    .AddGitHub(options =>
-    {
-        options.ClientId = githubClientId ?? throw new ArgumentNullException("GitHub ClientId is missing!");
-        options.ClientSecret = githubClientSecret ?? throw new ArgumentNullException("GitHub ClientSecret is missing!");
-        options.CallbackPath = "/api/OAuth/github/callback";
-    });
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    options.Cookie.SameSite = SameSiteMode.Lax; // or None if cross-site
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Required for HTTPS
+})
+.AddGoogle(google =>
+{
+    google.ClientId = googleClientId ?? throw new ArgumentNullException("Google ClientId is missing!");
+    google.ClientSecret = googleClientSecret ?? throw new ArgumentNullException("Google ClientSecret is missing!");
+    google.CallbackPath = "/api/OAuth/google/callback";
+})
+.AddGitHub(github =>
+{
+    github.ClientId = githubClientId ?? throw new ArgumentNullException("GitHub ClientId is missing!");
+    github.ClientSecret = githubClientSecret ?? throw new ArgumentNullException("GitHub ClientSecret is missing!");
+    github.CallbackPath = "/api/OAuth/github/callback";
+});
 
 
 
