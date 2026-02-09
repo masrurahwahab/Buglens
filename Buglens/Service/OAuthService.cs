@@ -96,7 +96,7 @@ builder.Services.AddAuthentication(options =>
 
     // HTTPS cookie settings for Render
     github.CorrelationCookie.SameSite = SameSiteMode.Lax;
-    github.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always; // ✅ HTTPS on Render
+    github.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always; 
 });
 
 // Repositories and Services
