@@ -156,10 +156,6 @@ var githubClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"];
 
 
 
-builder.Configuration["OAuth:Google:ClientId"];
-builder.Configuration["OAuth:Google:ClientSecret"];
-
-
 builder.Services.AddAuthentication()
     .AddGoogle(options =>
     {
