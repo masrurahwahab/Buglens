@@ -1,82 +1,64 @@
 using System.Net;
 using System.Text;
-using BugLens.Data;
 using Buglens.Contract.IRepository;
 using Buglens.Contract.IServices;
+using BugLens.Data;
 using Buglens.Repository;
 using Buglens.Service;
 using Buglens.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load environment variables
 builder.Configuration.AddEnvironmentVariables();
 
+// Diagnostics
+Console.WriteLine("=== Configuration Diagnostics ===");
+Console.WriteLine($"Jwt:Key exists: {!string.IsNullOrEmpty(builder.Configuration["Jwt:Key"])}");
+Console.WriteLine($"Jwt:Issuer: {builder.Configuration["Jwt:Issuer"]}");
+Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine("=== End Diagnostics ===");
 
-// =======================
-// DATA PROTECTION (Fix OAuth State)
-// =======================
+// ✅ Persist keys (important for Render containers)
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("/tmp/asp-dataprotection-keys"))
     .SetApplicationName("BugLens");
 
-
-// =======================
-// SERVICES
-// =======================
+// Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-// =======================
-// CORS
-// =======================
+// ✅ CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader());
+    options.AddPolicy("AllowAll",
+        policy => policy
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader());
 });
 
-
-// =======================
-// DATABASE
-// =======================
+// ✅ Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
 builder.Services.AddDbContext<BugLensContext>(options =>
     options.UseNpgsql(connectionString));
 
+// ✅ JWT Authentication ONLY
+var jwtKey = builder.Configuration["Jwt:Key"] 
+    ?? throw new InvalidOperationException("Jwt:Key missing");
 
-// =======================
-// JWT CONFIG
-// =======================
-var jwtKey = builder.Configuration["Jwt:Key"]!;
-var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
-var jwtAudience = builder.Configuration["Jwt:Audience"]!;
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] 
+    ?? throw new InvalidOperationException("Jwt:Issuer missing");
 
+var jwtAudience = builder.Configuration["Jwt:Audience"] 
+    ?? throw new InvalidOperationException("Jwt:Audience missing");
 
-// =======================
-// AUTHENTICATION
-// =======================
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = "GitHub";
-})
-.AddCookie(options =>
-{
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.HttpOnly = true;
-})
-
-.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -90,116 +72,61 @@ builder.Services.AddAuthentication(options =>
             Encoding.UTF8.GetBytes(jwtKey)),
         ClockSkew = TimeSpan.FromMinutes(5)
     };
-})
-
-
-// =======================
-// GOOGLE OAUTH
-// =======================
-.AddGoogle("Google", google =>
-{
-    google.ClientId = builder.Configuration["OAuth:Google:ClientId"]!;
-    google.ClientSecret = builder.Configuration["OAuth:Google:ClientSecret"]!;
-    google.CallbackPath = "/api/OAuth/google/callback";
-
-    google.CorrelationCookie.SameSite = SameSiteMode.Lax;
-    google.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-})
-
-
-// =======================
-// GITHUB OAUTH
-// =======================
-.AddGitHub("GitHub", github =>
-{
-    github.ClientId = builder.Configuration["OAuth:GitHub:ClientId"]!;
-    github.ClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"]!;
-    github.CallbackPath = "/api/OAuth/github/callback";
-
-    github.Scope.Add("read:user");
-    github.Scope.Add("user:email");
-
-    github.CorrelationCookie.SameSite = SameSiteMode.Lax;
-    github.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
-
-// =======================
-// REPOSITORIES & SERVICES
-// =======================
+// ✅ Repositories
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IAnalysisRepository, AnalysisRepository>();
 builder.Services.AddScoped<IStatisticsRepository, StatisticsRepository>();
+
+// ✅ Services
 builder.Services.AddHttpClient<IOAuthService, OAuthService>();
-
-builder.Services.AddScoped<Buglens.UnitOfWork.IUnitOfWork,
-    Buglens.UnitOfWork.UnitOfWork>();
-
+builder.Services.AddScoped<Buglens.UnitOfWork.IUnitOfWork, Buglens.UnitOfWork.UnitOfWork>();
 builder.Services.AddScoped<IAnalysisService, AnalysisService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// ✅ Gemini Service
 builder.Services.AddHttpClient<IGeminiService, GeminiService>()
-    .ConfigurePrimaryHttpMessageHandler(() =>
-        new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback =
-                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
-            AutomaticDecompression =
-                DecompressionMethods.GZip | DecompressionMethods.Deflate
-        });
+.ConfigurePrimaryHttpMessageHandler(() =>
+{
+    return new HttpClientHandler
+    {
+        ServerCertificateCustomValidationCallback =
+            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+        AutomaticDecompression =
+            DecompressionMethods.GZip | DecompressionMethods.Deflate,
+        SslProtocols =
+            System.Security.Authentication.SslProtocols.Tls12 |
+            System.Security.Authentication.SslProtocols.Tls13
+    };
+})
+.SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
-
-// =======================
-// BUILD APP
-// =======================
 var app = builder.Build();
 
-
-// =======================
-// RENDER PORT BINDING
-// =======================
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Urls.Add($"http://0.0.0.0:{port}");
-
-
-// =======================
-// HTTPS REDIRECTION
-// =======================
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
-
-
-// =======================
-// SWAGGER
-// =======================
+// Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-
-// =======================
-// MIDDLEWARE
-// =======================
+// CORS
 app.UseCors("AllowAll");
 
-app.UseAuthentication();
-app.UseAuthorization();
+// Static files
+var defaultFilesOptions = new DefaultFilesOptions();
+defaultFilesOptions.DefaultFileNames.Clear();
+defaultFilesOptions.DefaultFileNames.Add("welcome.html");
 
-
-// Static Files
-var defaultFiles = new DefaultFilesOptions();
-defaultFiles.DefaultFileNames.Clear();
-defaultFiles.DefaultFileNames.Add("welcome.html");
-
-app.UseDefaultFiles(defaultFiles);
+app.UseDefaultFiles(defaultFilesOptions);
 app.UseStaticFiles();
 
+// Authentication
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Controllers
 app.MapControllers();
