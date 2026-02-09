@@ -1,150 +1,201 @@
-using System.Net;
-using System.Security.Claims;
-using Buglens.Contract.IRepository;
-using Buglens.Contract.IServices;
-using BugLens.Data;
-using Buglens.Repository;
-using Buglens.Service;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Buglens.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.DataProtection;
+using System.Text.Json;
+using Buglens.Model;
+using Buglens.Models;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Load environment variables
-builder.Configuration.AddEnvironmentVariables();
-
-// Diagnostics
-Console.WriteLine("=== Configuration Diagnostics ===");
-Console.WriteLine($"Jwt:Key exists: {!string.IsNullOrEmpty(builder.Configuration["Jwt:Key"])}");
-Console.WriteLine($"Jwt:Issuer: {builder.Configuration["Jwt:Issuer"]}");
-Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
-Console.WriteLine("=== End Diagnostics ===");
-
-// Configure Data Protection for OAuth state cookies
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo("/tmp/asp-dataprotection-keys"))
-    .SetApplicationName("BugLens");
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// CORS
-builder.Services.AddCors(options =>
+public class OAuthService : IOAuthService
 {
-    options.AddPolicy("AllowAll",
-        policy => policy
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader());
-});
+    private readonly HttpClient _httpClient;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<OAuthService> _logger;
 
-// Database
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<BugLensContext>(options =>
-    options.UseNpgsql(connectionString));
-
-// JWT (optional, still needed for API authentication)
-var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer missing");
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience missing");
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = "GitHub"; // Default OAuth challenge
-})
-.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-{
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // ✅ HTTPS on Render
-    options.Cookie.HttpOnly = true;
-})
-.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    public OAuthService(
+        HttpClient httpClient,
+        IConfiguration configuration,
+        ILogger<OAuthService> logger)
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        ClockSkew = TimeSpan.FromMinutes(5)
-    };
-})
-.AddGoogle("Google", google =>
-{
-    google.ClientId = builder.Configuration["OAuth:Google:ClientId"] ?? throw new ArgumentNullException("Google ClientId missing");
-    google.ClientSecret = builder.Configuration["OAuth:Google:ClientSecret"] ?? throw new ArgumentNullException("Google ClientSecret missing");
-    google.CallbackPath = "/api/OAuth/google/callback";
-})
-.AddGitHub("GitHub", github =>
-{
-    github.ClientId = builder.Configuration["OAuth:GitHub:ClientId"];
-    github.ClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"];
-    github.CallbackPath = "/api/OAuth/github/callback";
-    github.Scope.Add("read:user");
-    github.Scope.Add("user:email");
+        _httpClient = httpClient;
+        _configuration = configuration;
+        _logger = logger;
+    }
 
-    // HTTPS cookie settings for Render
-    github.CorrelationCookie.SameSite = SameSiteMode.Lax;
-    github.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always; 
-});
-
-// Repositories and Services
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-builder.Services.AddScoped<IAnalysisRepository, AnalysisRepository>();
-builder.Services.AddScoped<IStatisticsRepository, StatisticsRepository>();
-builder.Services.AddHttpClient<IOAuthService, OAuthService>();
-builder.Services.AddScoped<Buglens.UnitOfWork.IUnitOfWork, Buglens.UnitOfWork.UnitOfWork>();
-builder.Services.AddScoped<IAnalysisService, AnalysisService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddHttpClient<IGeminiService, GeminiService>()
-    .ConfigurePrimaryHttpMessageHandler(() =>
+    public async Task<GoogleTokenResponse> ExchangeGoogleCodeAsync(string code)
     {
-        return new HttpClientHandler
+        try
         {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
-            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13
-        };
-    })
-    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+            var clientId = _configuration["OAuth:Google:ClientId"];
+            var clientSecret = _configuration["OAuth:Google:ClientSecret"];
+            var redirectUri = _configuration["OAuth:Google:RedirectUri"];
 
-var app = builder.Build();
+            var tokenRequest = new Dictionary<string, string>
+            {
+                { "code", code },
+                { "client_id", clientId },
+                { "client_secret", clientSecret },
+                { "redirect_uri", redirectUri },
+                { "grant_type", "authorization_code" }
+            };
 
-// Swagger
-if (app.Environment.IsDevelopment())
+            var response = await _httpClient.PostAsync(
+                "https://oauth2.googleapis.com/token",
+                new FormUrlEncodedContent(tokenRequest)
+            );
+
+            response.EnsureSuccessStatusCode();
+            var responseContent = await response.Content.ReadAsStringAsync();
+            
+            var tokenResponse = JsonSerializer.Deserialize<GoogleTokenResponse>(responseContent);
+            return tokenResponse;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exchanging Google code for token");
+            throw;
+        }
+    }
+
+    public async Task<GoogleUserInfo> GetGoogleUserInfoAsync(string accessToken)
+    {
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+
+            var response = await _httpClient.GetAsync("https://www.googleapis.com/oauth2/v2/userinfo");
+        
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError($"Google API error: {response.StatusCode}, Content: {errorContent}");
+                throw new Exception($"Failed to get user info from Google: {response.StatusCode}");
+            }
+
+            var userInfoJson = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation($"Google user info JSON: {userInfoJson}");
+        
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+        
+            var userInfo = JsonSerializer.Deserialize<GoogleUserInfo>(userInfoJson, options);
+        
+            if (userInfo == null)
+            {
+                _logger.LogError("Deserialized user info is null");
+                throw new Exception("Failed to deserialize Google user info");
+            }
+
+            if (string.IsNullOrEmpty(userInfo.Email))
+            {
+                _logger.LogError($"Email is null in user info. Full JSON: {userInfoJson}");
+                throw new Exception("Google user info does not contain email");
+            }
+
+            if (string.IsNullOrEmpty(userInfo.Id))
+            {
+                _logger.LogError($"ID is null in user info. Full JSON: {userInfoJson}");
+                throw new Exception("Google user info does not contain ID");
+            }
+        
+            return userInfo;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting Google user info");
+            throw;
+        }
+    }
+
+   public async Task<GitHubTokenResponse> ExchangeGitHubCodeAsync(string code)
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    try
+    {
+        var clientId = _configuration["OAuth:GitHub:ClientId"];
+        var clientSecret = _configuration["OAuth:GitHub:ClientSecret"];
+        var redirectUri = _configuration["OAuth:GitHub:RedirectUri"];
+
+        var tokenRequest = new Dictionary<string, string>
+        {
+            { "code", code },
+            { "client_id", clientId },
+            { "client_secret", clientSecret },
+            { "redirect_uri", redirectUri }
+        };
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/oauth/access_token")
+        {
+            Content = new FormUrlEncodedContent(tokenRequest)
+        };
+        request.Headers.Add("Accept", "application/json");
+
+        var response = await _httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation($"GitHub token response: {responseContent}");
+        
+        var tokenResponse = JsonSerializer.Deserialize<GitHubTokenResponse>(responseContent);
+        
+        if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.access_token))
+        {
+            throw new Exception("Failed to get access token from GitHub");
+        }
+        
+        return tokenResponse;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error exchanging GitHub code for token");
+        throw;
+    }
 }
 
-// CORS
-app.UseCors("AllowAll");
+public async Task<GitHubUserInfo> GetGitHubUserInfoAsync(string accessToken)
+{
+    try
+    {
+        _httpClient.DefaultRequestHeaders.Clear();
+        _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "BugLens");
 
-// Static files
-var defaultFilesOptions = new DefaultFilesOptions();
-defaultFilesOptions.DefaultFileNames.Clear();
-defaultFilesOptions.DefaultFileNames.Add("welcome.html");
-app.UseDefaultFiles(defaultFilesOptions);
-app.UseStaticFiles();
+        var response = await _httpClient.GetAsync("https://api.github.com/user");
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError($"GitHub API error: {response.StatusCode}, Content: {errorContent}");
+            throw new Exception($"Failed to get user info from GitHub: {response.StatusCode}");
+        }
 
-// Auth
-app.UseAuthentication();
-app.UseAuthorization();
+        var userInfoJson = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation($"GitHub user info JSON: {userInfoJson}");
+        
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        
+        var userInfo = JsonSerializer.Deserialize<GitHubUserInfo>(userInfoJson, options);
+        
+        if (userInfo == null)
+        {
+            _logger.LogError("Deserialized GitHub user info is null");
+            throw new Exception("Failed to deserialize GitHub user info");
+        }
 
-// Controllers
-app.MapControllers();
+        
+        if (string.IsNullOrEmpty(userInfo.Email))
+        {
+            _logger.LogWarning("GitHub user has no public email, using login as fallback");
+        }
+        
+        return userInfo;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error getting GitHub user info");
+        throw;
+    }
+}
 
-app.Run();
+}
