@@ -149,14 +149,16 @@ builder.Services.AddAuthentication(options =>
     })
     .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
-var googleClientId = builder.Configuration["GOOGLE:CLIENT:ID"];
-var googleClientSecret = builder.Configuration["GOOGLE:CLIENT:SECRET"];
-var githubClientId = builder.Configuration["GITHUB:CLIENT:ID"];
-var githubClientSecret = builder.Configuration["GITHUB:CLIENT:SECRET"];
+var googleClientId = builder.Configuration["OAuth:Google:ClientId"];
+var googleClientSecret = builder.Configuration["OAuth:Google:ClientSecret"];
+var githubClientId = builder.Configuration["OAuth:GitHub:ClientId"];
+var githubClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"];
 
 
-Console.WriteLine($"Google ClientId: {googleClientId}");
-Console.WriteLine($"GitHub ClientId: {githubClientId}");
+
+builder.Configuration["OAuth:Google:ClientId"]
+builder.Configuration["OAuth:Google:ClientSecret"]
+
 
 builder.Services.AddAuthentication()
     .AddGoogle(options =>
